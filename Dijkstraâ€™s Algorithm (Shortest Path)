@@ -1,0 +1,142 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX 100
+
+typedef struct Node {
+    int vertex;
+    int weight;
+    struct Node* next;
+} Node;
+
+Node* createNode(int v, int w) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->vertex = v;
+    newNode->weight = w;
+    newNode->next = NULL;
+    return newNode;
+}
+
+void addEdge(Node* adj[], int u, int v, int w) {
+    Node* newNode = createNode(v, w);
+    newNode->next = adj[u];
+    adj[u] = newNode;
+}
+
+typedef struct {
+    int vertex;
+    int dist;
+} HeapNode;
+
+typedef struct {
+    HeapNode heap[MAX * MAX];
+    int size;
+} MinHeap;
+
+void swap(HeapNode* a, HeapNode* b) {
+    HeapNode temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void heapifyUp(MinHeap* h, int i) {
+    while (i && h->heap[(i - 1) / 2].dist > h->heap[i].dist) {
+        swap(&h->heap[i], &h->heap[(i - 1) / 2]);
+        i = (i - 1) / 2;
+    }
+}
+
+void heapifyDown(MinHeap* h, int i) {
+    int smallest = i;
+    int left = 2 * i + 1;
+    int right = 2 * i + 2;
+
+    if (left < h->size && h->heap[left].dist < h->heap[smallest].dist)
+        smallest = left;
+
+    if (right < h->size && h->heap[right].dist < h->heap[smallest].dist)
+        smallest = right;
+
+    if (smallest != i) {
+        swap(&h->heap[i], &h->heap[smallest]);
+        heapifyDown(h, smallest);
+    }
+}
+
+void push(MinHeap* h, int v, int dist) {
+    h->heap[h->size].vertex = v;
+    h->heap[h->size].dist = dist;
+    heapifyUp(h, h->size);
+    h->size++;
+}
+
+HeapNode pop(MinHeap* h) {
+    HeapNode root = h->heap[0];
+    h->heap[0] = h->heap[h->size - 1];
+    h->size--;
+    heapifyDown(h, 0);
+    return root;
+}
+
+void dijkstra(Node* adj[], int n, int src) {
+    int dist[MAX];
+
+    for (int i = 0; i < n; i++)
+        dist[i] = INT_MAX;
+
+    MinHeap heap;
+    heap.size = 0;
+
+    dist[src] = 0;
+    push(&heap, src, 0);
+
+    while (heap.size > 0) {
+        HeapNode top = pop(&heap);
+        int u = top.vertex;
+
+        Node* temp = adj[u];
+        while (temp != NULL) {
+            int v = temp->vertex;
+            int w = temp->weight;
+
+            if (dist[v] > dist[u] + w) {
+                dist[v] = dist[u] + w;
+                push(&heap, v, dist[v]);
+            }
+            temp = temp->next;
+        }
+    }
+
+    printf("Shortest distances from source %d:\n", src);
+    for (int i = 0; i < n; i++) {
+        if (dist[i] == INT_MAX)
+            printf("Node %d: INF\n", i);
+        else
+            printf("Node %d: %d\n", i, dist[i]);
+    }
+}
+
+int main() {
+    int n = 5;
+    Node* adj[MAX];
+
+    for (int i = 0; i < n; i++)
+        adj[i] = NULL;
+
+    addEdge(adj, 0, 1, 10);
+    addEdge(adj, 0, 4, 5);
+    addEdge(adj, 1, 2, 1);
+    addEdge(adj, 1, 4, 2);
+    addEdge(adj, 2, 3, 4);
+    addEdge(adj, 3, 0, 7);
+    addEdge(adj, 4, 1, 3);
+    addEdge(adj, 4, 2, 9);
+    addEdge(adj, 4, 3, 2);
+
+    int source = 0;
+
+    dijkstra(adj, n, source);
+
+    return 0;
+}
